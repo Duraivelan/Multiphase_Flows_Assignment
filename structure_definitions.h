@@ -127,6 +127,7 @@ struct SubData
   vctr3D frc;
   double mass;
   int PartNum;
+  double radius;
 /*double sigma;
   double eps;
   double mass; */

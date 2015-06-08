@@ -32,9 +32,9 @@ void createInitialPosition_N_particles(std::string fileName,std::string fileName
  	std::ofstream outFile(fileName);
  	std::ofstream outFile2(fileName2);
  	for(int i=0;i<N;i++) {
- 		x=((double) rand() / (RAND_MAX/Lx))-Lx/2.0;  // create particle position from -Lx/2 to Lx/2
-		y=((double) rand() / (RAND_MAX/Ly))-Ly/2.0;
-		z=((double) rand() / (RAND_MAX/Lz))-Lz/2.0;
+ 		x=0+i*1.5;//((double) rand() / (RAND_MAX/Lx))-Lx/2.0;  // create particle position from -Lx/2 to Lx/2
+		y=Ly/2.2;//abs(((double) rand() / (RAND_MAX/Ly))-Ly/2.0);
+		z=0;//((double) rand() / (RAND_MAX/Lz))-Lz/2.0;
 		vx= ((double) rand()/(RAND_MAX)-0.5);
 		vy= ((double) rand()/(RAND_MAX)-0.5);
 		vz= ((double) rand()/(RAND_MAX)-0.5);
@@ -60,40 +60,23 @@ std::random_device seed;
 std::mt19937 gen{seed()};
 std::normal_distribution<> R1(0,1),R2(0,1),R3(0,1);
 
-void verlet( vector<SubData>& particle, double kbT_dt) {
-	
+void brownian( vector<SubData>& particle, vector<vector<mtrx3D>>& Mobility_Tnsr_tt) {
 
 	for(int i=0;i<NrParticles;i++) 
 	{
 		vctr3D rand(R1(gen), R2(gen), R3(gen));
-		particle[i].vel+=(particle[i].frc-particle[i].vel*(mu))*(0.5*dt*inv_mass)+(rand*mu_sqrt*kbT_dt);
-		particle[i].pos+=particle[i].vel*dt;
+			for(int j=0;j<NrParticles;j++) 
+				{
+					particle[i].pos+=(Mobility_Tnsr_tt[i][j]*particle[j].frc)*(dt/(kb*T0));
+				}
+		particle[i].pos+=(rand*mu_sqrt*kbT_dt);
 		particle[i].pos.PBC(box,rbox);
 
-	}
 }
 
-void verletB(vector<SubData>& particle, double vel_scale, double kbT_dt) {
-		
 
-	if(xxthermo) 
-		{
-		for(int i=0;i<NrParticles;i++) 
-			{
-				vctr3D rand(R1(gen), R2(gen), R3(gen));
-				particle[i].vel+=(particle[i].frc-particle[i].vel*(mu))*(0.5*dt*inv_mass)+(rand*mu_sqrt*kbT_dt);
-				particle[i].vel=(particle[i].vel)*vel_scale;
-			}
-       	} 
-	else 
-		{
-		for(int i=0;i<NrParticles;i++) 
-			{
-				vctr3D rand(R1(gen), R2(gen), R3(gen));
-				particle[i].vel+=(particle[i].frc-particle[i].vel*(mu))*(0.5*dt*inv_mass)+(rand*mu_sqrt*kbT_dt);
-			}
-       	}
 }
+
 
 int main() {
 // current date/time based on current system
@@ -104,8 +87,7 @@ int main() {
    cout << ltm->tm_sec << endl;
          
 int if_create_particles = xxcreate, ifrestart=xxrestart;
-         
-double kb=1.0 , T0=1.0, tauT=0.1;
+double tauT=0.1;         
 double Temp=T0;
 double shear_rate = 0.0; //shear rate
 int ifshear = 0;// set equal to 1 for shear
@@ -115,7 +97,6 @@ double simu_time=dt;
 int step=0, nSteps=10000, frame=100;
 double vel_scale;
 int if_Periodic =1;
-double kbT_dt=sqrt(2.0*kb*Temp*dt);
 
 std::cout<<cellx<<'\t'<<celly<<'\t'<<cellz<<std::endl;
 double  K_Energy, p_energy=0;
@@ -125,6 +106,16 @@ double dr=0.05; // step size for RDF calculation
 // std::vector<int> RDF((int)  floor(sqrt((Lx/2)*(Lx/2)+(Ly/2)*(Ly/2)+(Lz/2)*(Lz/2)))/dr,0), RDF1((int)  floor(sqrt(Lx*Lx+Ly*Ly))/dr,0);
 
 vector<SubData>  particle(NrParticles);
+vector<vector<mtrx3D>>  Mobility_Tnsr_tt(NrParticles,vector<mtrx3D>(NrParticles));
+vector<vector<mtrx3D>>  Mobility_Tnsr_tr(NrParticles,vector<mtrx3D>(NrParticles));
+vector<vector<mtrx3D>>  Mobility_Tnsr_rt(NrParticles,vector<mtrx3D>(NrParticles));
+vector<vector<mtrx3D>>  Mobility_Tnsr_rr(NrParticles,vector<mtrx3D>(NrParticles));
+vector<vector<mtrx3D>>  Mobility_Tnsr(NrParticles,vector<mtrx3D>(NrParticles));
+
+// variables for mobility tensor calculation
+vctr3D Rij;
+double Rij2, Rij2_inv, temp, temp1, temp2, temp3, tau;
+//
 
 if(ifrestart)	{
 std::string fileName=dataFileName+"/End_positions.dat";
@@ -161,14 +152,7 @@ else {
         currentLine >> particle[i].vel.comp[0];
         currentLine >> particle[i].vel.comp[1];
         currentLine >> particle[i].vel.comp[2];
-        Temp+=0.5*m*(particle[i].vel.comp[0]*particle[i].vel.comp[0]
-				   + particle[i].vel.comp[1]*particle[i].vel.comp[1]
-				   + particle[i].vel.comp[2]*particle[i].vel.comp[2]);
-
     }
-		Temp=(Temp)/(1.5*NrParticles*kb);
-		vel_scale = sqrt(T0/Temp);
-		std::cout<<Temp<<'\t'<<vel_scale<<std::endl;
 }	
 } else {
 
@@ -198,9 +182,6 @@ else {
         currentLine >> particle[i].pos.comp[1];
         currentLine >> particle[i].pos.comp[2];           
     }
-		vel_scale = sqrt(T0/Temp);
-		std::cout<<Temp<<'\t'<<vel_scale<<std::endl;
-
 }
 
 }		
@@ -226,12 +207,13 @@ while (( next_file = readdir(theFolder)) )
 }
 
 /* sort particles into cells */
-	if (!ifrestart) {
+	
 
 for (int i=0;i<NrParticles;i++) {
-
-	//	particle[i].vel={((double) rand()/(RAND_MAX)-0.5),((double) rand()/(RAND_MAX)-0.5),((double) rand()/(RAND_MAX)-0.5)};
-					particle[i].vel=(particle[i].vel)*vel_scale;
+	particle[i].radius=sigma/2.0;
+	if (!ifrestart) {
+		//	particle[i].vel={((double) rand()/(RAND_MAX)-0.5),((double) rand()/(RAND_MAX)-0.5),((double) rand()/(RAND_MAX)-0.5)};
+		particle[i].vel=(particle[i].vel)*vel_scale;
 	
 	}
 }
@@ -252,28 +234,60 @@ outFile3<<"simu_time"<<'\t'<<"Pxx"<<'\t'<<"Pyy"<<'\t'<<"Pzz"<<'\t'<<"Pxy"<<'\t'<
 */
 step = 0;
 forceUpdate(particle, &p_energy);
-
 simu_time =dt;
 do {
 	p_energy=0;	
 	
-	verlet( particle, kbT_dt)	;
+	brownian( particle , Mobility_Tnsr_tt)	;
 	
  	forceUpdate( particle, &p_energy);
+ 	
+ 	 	
 	for ( int i = 0 ; i < NrParticles; i ++ )
+		{
+			particle[i].frc.comp[1]-=09.8;
+		}		
+ 		
+	for (int i=0; i<NrParticles; i++)
+	{
+		for (int j=0; j<NrParticles; j++)
 			{
-				particle[i].frc.comp[1]-=09.8;
-			}	
-	K_Energy=0;
-	for ( int i = 0 ; i < NrParticles; i ++ )
-			{
-						K_Energy+=0.5*m*(particle[i].vel.comp[0]*particle[i].vel.comp[0]
-									   + particle[i].vel.comp[1]*particle[i].vel.comp[1]
-									   + particle[i].vel.comp[2]*particle[i].vel.comp[2]);
-	}
-	
-	Temp=(K_Energy)/(1.5*NrParticles*kb);
+				Rij=particle[i].pos-particle[j].pos;
+				vctr3D col1(0, -Rij.comp[2], Rij.comp[1]);
+				vctr3D col2(Rij.comp[2],0,-Rij.comp[0]);
+				vctr3D col3(-Rij.comp[1],Rij.comp[0],0);
+				mtrx3D epsilon_rij(col1 , col2, col3);
+				Rij2=Rij.norm2();
+				Rij2_inv=1/Rij2;
+				temp1=1.0/(8.0*M_PI*eta);
+				tau = 1.0/(6.0*M_PI*eta*particle[i].radius);
+				temp=temp1/(sqrt(Rij2));
+				temp2=temp1/(particle[i].radius*particle[i].radius*particle[i].radius);
+				temp3=temp/(2.0*Rij2);
+				if(i==j) {
+				Mobility_Tnsr_tt[i][j]	=	 	Unit_diag * tau;
+											
+				Mobility_Tnsr_rr[i][j]	=		Unit_diag*temp2 ;
+				Mobility_Tnsr_rt[i][j]	= 		null33D ;
+				Mobility_Tnsr_tr[i][j]	= 		null33D ;
 
+			 } else {
+				Mobility_Tnsr_tt[i][j]	=	(	Unit_diag
+											+	(Rij^Rij)*Rij2_inv
+											+	(Unit_diag*(1.0/3.0)-(Rij^Rij)*Rij2_inv)*(particle[i].radius*particle[i].radius+particle[j].radius*particle[j].radius)*Rij2_inv
+											)	*	temp;
+				
+				Mobility_Tnsr_rr[i][j]	=		(Unit_diag*(-1.0) + (Rij^Rij)*Rij2_inv*3.0)*temp3 ;
+				
+				Mobility_Tnsr_rt[i][j]	=	  	epsilon_rij*(-2.0)*temp3;
+				Mobility_Tnsr_tr[i][j]	= 	Mobility_Tnsr_rt[i][j];
+												
+			 } 
+			// 	Mobility_Tnsr[i][j]		=	 Mobility_Tnsr_tt[i][j] -  Mobility_Tnsr_tr[i][j]*Mobility_Tnsr_rr[i][j]*Mobility_Tnsr_rt[i][j] ;
+
+				
+			}	
+	}
 
 if (step%frame==0) { 
 	
@@ -297,10 +311,7 @@ if (step%frame==0) {
 	outFile3<<Temp<<'\t'<<std::endl;
 	
 	step+=1;
-	vel_scale = sqrt(1.0+(T0/Temp-1.0)*(dt/tauT));
-	kbT_dt=sqrt(2.0*kb*Temp*dt);
-	verletB( particle , vel_scale , kbT_dt ) ;
-
+	
 } while(xxnstep);
 	
 
