@@ -55,23 +55,33 @@ std::vector<int> radialDistFunc(double XYZ[][3], double Lx,double Ly, double Lz,
 }
 
 // forceUpdate fucntion included as force.h header file
-void verlet( vector<SubData>& particle ) {
+
+std::random_device seed;
+std::mt19937 gen{seed()};
+std::normal_distribution<> R1(0,1),R2(0,1),R3(0,1);
+
+void verlet( vector<SubData>& particle, double kbT_dt) {
 	
+
 	for(int i=0;i<NrParticles;i++) 
 	{
-		particle[i].vel+=particle[i].frc*(0.5*dt*inv_mass);
+		vctr3D rand(R1(gen), R2(gen), R3(gen));
+		particle[i].vel+=(particle[i].frc-particle[i].vel*(mu))*(0.5*dt*inv_mass)+(rand*mu_sqrt*kbT_dt);
 		particle[i].pos+=particle[i].vel*dt;
 		particle[i].pos.PBC(box,rbox);
 
 	}
 }
 
-void verletB(vector<SubData>& particle, double vel_scale) {
+void verletB(vector<SubData>& particle, double vel_scale, double kbT_dt) {
+		
+
 	if(xxthermo) 
 		{
 		for(int i=0;i<NrParticles;i++) 
 			{
-				particle[i].vel+=particle[i].frc*(0.5*dt*inv_mass);
+				vctr3D rand(R1(gen), R2(gen), R3(gen));
+				particle[i].vel+=(particle[i].frc-particle[i].vel*(mu))*(0.5*dt*inv_mass)+(rand*mu_sqrt*kbT_dt);
 				particle[i].vel=(particle[i].vel)*vel_scale;
 			}
        	} 
@@ -79,7 +89,8 @@ void verletB(vector<SubData>& particle, double vel_scale) {
 		{
 		for(int i=0;i<NrParticles;i++) 
 			{
-				particle[i].vel+=particle[i].frc*(0.5*dt*inv_mass);
+				vctr3D rand(R1(gen), R2(gen), R3(gen));
+				particle[i].vel+=(particle[i].frc-particle[i].vel*(mu))*(0.5*dt*inv_mass)+(rand*mu_sqrt*kbT_dt);
 			}
        	}
 }
@@ -104,6 +115,7 @@ double simu_time=dt;
 int step=0, nSteps=10000, frame=100;
 double vel_scale;
 int if_Periodic =1;
+double kbT_dt=sqrt(2.0*kb*Temp*dt);
 
 std::cout<<cellx<<'\t'<<celly<<'\t'<<cellz<<std::endl;
 double  K_Energy, p_energy=0;
@@ -249,10 +261,13 @@ simu_time =dt;
 do {
 	p_energy=0;	
 	
-	verlet( particle )	;
+	verlet( particle, kbT_dt)	;
 	
  	forceUpdate( particle, &p_energy);
-
+	for ( int i = 0 ; i < NrParticles; i ++ )
+			{
+				particle[i].frc.comp[1]-=9.8;
+			}	
 	K_Energy=0;
 	for ( int i = 0 ; i < NrParticles; i ++ )
 			{
@@ -287,8 +302,8 @@ if (step%frame==0) {
 	
 	step+=1;
 	vel_scale = sqrt(1.0+(T0/Temp-1.0)*(dt/tauT));
-
-	verletB( particle , vel_scale) ;
+	kbT_dt=sqrt(2.0*kb*Temp*dt);
+	verletB( particle , vel_scale , kbT_dt ) ;
 
 } while(xxnstep);
 	

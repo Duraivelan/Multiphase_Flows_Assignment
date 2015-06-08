@@ -1,12 +1,12 @@
 #!/bin/csh -f
 
-
 @ a = 1
 while ( $a < 2 )
+mkdir $a 
 cd $a
-  sed "s/xxx/$a/ ; s/xxxnew/$a/ ; s/xxnstep/step<1000/ ; s/xxcreate/1/ ; s/xxrestart/0/ ; s/xxthermo/1/ " ../../MD_3D_structured.cpp > MD_3D_structured.cpp
-  sed "s/xxshift/0/ " ../../pairforce_structured.h > pairforce_structured.h
-  sed "s/xxcut/2.5/ " ../../defs.h > defs.h
+  sed "s/xxx/$a/ ; s/xxxnew/$a/ ; s/xxnstep/step<10000/ ; s/xxcreate/1/ ; s/xxrestart/0/ ; s/xxthermo/1/ " ../../MD_3D_structured.cpp > MD_3D_structured.cpp
+  sed "s/xxshift/1/ " ../../pairforce_structured.h > pairforce_structured.h
+  sed "s/xxcut/1.1225/ " ../../defs.h > defs.h
   
   cp ../../force_structured.h .
   cp ../../structure_definitions.h .
@@ -23,9 +23,28 @@ end
 @ a = 1
 while ( $a < 2 )
 cd $a
-  sed "s/xxx/$a/ ; s/xxxnew/$a/ ; s/xxnstep/step<10000/ ; s/xxcreate/0/ ; s/xxrestart/1/ ; s/xxthermo/0/ " ../../MD_3D_structured.cpp > MD_3D_structured.cpp
+  sed "s/xxx/$a/ ; s/xxxnew/$a/ ; s/xxnstep/step<10000/ ; s/xxcreate/0/ ; s/xxrestart/1/ ; s/xxthermo/1/ " ../../MD_3D_structured.cpp > MD_3D_structured.cpp
   sed "s/xxshift/0/ " ../../pairforce_structured.h > pairforce_structured.h
-  sed "s/xxcut/2.5/ " ../../defs.h > defs.h
+  sed "s/xxcut/1.1225/ " ../../defs.h > defs.h
+  
+  cp ../../force_structured.h .
+  cp ../../structure_definitions.h .
+  cp ../../force_structured.cpp .
+  cp ../../vctr3D.h .
+  cp ../../vctr4D.h .
+
+g++ -std=c++11 MD_3D_structured.cpp force_structured.cpp -O3 -o MD_3D_structured.out 
+ ./MD_3D_structured.out | tee log
+  cd ..
+  @ a = $a + 1
+end
+
+@ a = 1
+while ( $a < 2 )
+cd $a
+  sed "s/xxx/$a/ ; s/xxxnew/$a/ ; s/xxnstep/step<10000/ ; s/xxcreate/0/ ; s/xxrestart/1/ ; s/xxthermo/1/ " ../../MD_3D_structured.cpp > MD_3D_structured.cpp
+  sed "s/xxshift/0/ " ../../pairforce_structured.h > pairforce_structured.h
+  sed "s/xxcut/1.1225/ " ../../defs.h > defs.h
   
   cp ../../force_structured.h .
   cp ../../structure_definitions.h .
