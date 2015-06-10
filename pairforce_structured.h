@@ -20,7 +20,7 @@ r2=dr.norm2();
 							} 
 			else {				
 									
-				r2inv=1/r2;
+				r2inv=1.0/r2;
         		r6inv 	= 	r2inv*r2inv*r2inv;
         		r12inv 	= 	r6inv*r6inv;
 	//			simple potential
@@ -30,12 +30,12 @@ r2=dr.norm2();
 	//			exponential potential from PHYSICAL REVIEW E VOLUME 50, NUMBER 3 SEPTEMBER 1994 Browniian dynamics simulations of self-difFusion and shear viscosity of near-hard-sphere colloids
 	//			F = n*epsilon*pow(sigma*sigma/r2,n/2)/r2; //  n is the exponent of the potential function
 	//			F = 4*epsilon*(12*pow(sigma*sigma/r2,6)-6*pow(sigma*sigma/r2,3))/r2; 	WCA potential
-				F = 4*epsilon*(12*sigma12*r12inv-6*sigma6*r6inv)*r2inv;
+				F = 4.0*epsilon*(12.0*sigma12*r12inv-6.0*sigma6*r6inv)*r2inv;
         		Fij=dr*F;
 								particle[i].frc+=Fij;
 								particle[j].frc-=Fij;
 
-				*p_energy+=4*epsilon*(sigma12*r12inv-sigma6*r6inv) - phicut;
+				*p_energy+=4.0*epsilon*(sigma12*r12inv-sigma6*r6inv) - phicut;
 
 			} 
 			
