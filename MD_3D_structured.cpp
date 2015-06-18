@@ -32,8 +32,8 @@ void createInitialPosition_N_particles(std::string fileName,std::string fileName
  	std::ofstream outFile(fileName);
  	std::ofstream outFile2(fileName2);
  	for(int i=0;i<N;i++) {
- 		x=0.0+i*1.2;//((double) rand() / (RAND_MAX/Lx))-Lx/2.0;  // create particle position from -Lx/2 to Lx/2
-		y=Ly/2.5;//abs(((double) rand() / (RAND_MAX/Ly))-Ly/2.0);
+ 		x=0.0;//*sigma;//((double) rand() / (RAND_MAX/Lx))-Lx/2.0;  // create particle position from -Lx/2 to Lx/2
+		y=Ly/2.5-i*1.5;//abs(((double) rand() / (RAND_MAX/Ly))-Ly/2.0);
 		z=0.0;//((double) rand() / (RAND_MAX/Lz))-Lz/2.0;
 		vx= ((double) rand()/(RAND_MAX)-0.5);
 		vy= ((double) rand()/(RAND_MAX)-0.5);
@@ -94,11 +94,11 @@ int ifshear = 0;// set equal to 1 for shear
 std::string dataFileName="../xxx",dataFileName_new="../xxxnew" ;
 int Max_Cluster_N=NrParticles;
 double simu_time=dt;
-int step=0, nSteps=10000, frame=100;
+int step=0, nSteps=10000, frame=10;
 double vel_scale;
 int if_Periodic =1;
 
-std::cout<<cellx<<'\t'<<celly<<'\t'<<cellz<<std::endl;
+std::cout<<cellx<<'\t'<<celly<<'\t'<<cellz<<'\t'<<F_g<<std::endl;
 double  K_Energy, p_energy=0.0;
 vctr3D dR, dr2;
 double R, r2;
@@ -223,6 +223,8 @@ std::ofstream outFile1(dataFileName+"/PE_energy.dat");
 std::ofstream outFile2(dataFileName+"/Velocities.dat");
 std::ofstream outFile7(dataFileName+"/End_positions.dat");
 std::ofstream outFile3(dataFileName+"/Pressure_Tensor.dat");
+std::ofstream outFile9(dataFileName+"/particle1.dat");
+std::ofstream outFile10(dataFileName+"/particle2.dat");
 
 outFile3<<"simu_time"<<'\t'<<"Pxx"<<'\t'<<"Pyy"<<'\t'<<"Pzz"<<'\t'<<"Pxy"<<'\t'<<"Pxz"<<'\t'<<"Pyz"<<'\t'<<"Mxy"<<'\t'<<"Mxz"<<'\t'<<"Myz"<<'\t'<<"Temp"<<std::endl;
 // perfrom MD steps
@@ -238,16 +240,6 @@ simu_time =dt;
 do {
 	p_energy=0;	
 	
-	brownian( particle , Mobility_Tnsr_tt)	;
-	
- 	forceUpdate( particle, &p_energy);
- 	
- 	 	
-	for ( int i = 0 ; i < NrParticles; i ++ )
-		{
-			particle[i].frc.comp[1]-=09.8;
-		}		
- 		
 	for (int i=0; i<NrParticles; i++)
 	{
 		for (int j=0; j<NrParticles; j++)
@@ -267,44 +259,47 @@ do {
 				temp3=temp/(2.0*Rij2);
 				if(i==j) {
 				Mobility_Tnsr_tt[i][j]	=	 	Unit_diag * tau;
-											
-				Mobility_Tnsr_rr[i][j]	=		Unit_diag*temp2 ;
-				Mobility_Tnsr_rt[i][j]	= 		null33D ;
-				Mobility_Tnsr_tr[i][j]	= 		null33D ;
-
+							
 			 } else {
 				Mobility_Tnsr_tt[i][j]	=	(	Unit_diag
 											+	Rij_dyadic_Rij*Rij2_inv
 											+	(Unit_diag*(1.0/3.0)-(Rij_dyadic_Rij)*Rij2_inv)*(particle[i].radius*particle[i].radius+particle[j].radius*particle[j].radius)*Rij2_inv
 											)	*	temp;
-				
-				Mobility_Tnsr_rr[i][j]	=		(Unit_diag*(-1.0) + (Rij_dyadic_Rij)*Rij2_inv*3.0)*temp3 ;
-				
-				Mobility_Tnsr_rt[i][j]	=	  	epsilon_rij*(-2.0)*temp3;
-				Mobility_Tnsr_tr[i][j]	= 	Mobility_Tnsr_rt[i][j];
-												
+
 			 } 
 			// 	Mobility_Tnsr[i][j]		=	 Mobility_Tnsr_tt[i][j] -  Mobility_Tnsr_tr[i][j]*Mobility_Tnsr_rr[i][j]*Mobility_Tnsr_rt[i][j] ;
 
 				
 			}	
 	}
+	
+for ( int i = 0 ; i < NrParticles; i ++ )
+	{
+		 particle[i].frc.comp[1]+= F_g;
+	}		
+ 		
+	brownian( particle , Mobility_Tnsr_tt)	;
+	
+ 	forceUpdate( particle, &p_energy); 	 	
 
+	
 if (step%frame==0) { 
 	
-        std::ofstream outFile5(dataFileName+"/XYZ"+ std::to_string(step/frame) +".xyz");
+     //   std::ofstream outFile5(dataFileName+"/XYZ"+ std::to_string(step/frame) +".xyz");
         
-		outFile5<<NrParticles<<std::endl;
-		outFile5<<"X Y Z co-ordinates"<<std::endl;
+	//	outFile5<<NrParticles<<std::endl;
+	//	outFile5<<"X Y Z co-ordinates"<<std::endl;
 		// save position, Kinetic energy, Potential energy, Forces every 'frame' steps
-		for ( int i = 0 ; i < NrParticles; i ++ )
-			{
-						outFile5<<'H'<<'\t'<<particle[i].pos.comp[0]<<'\t'<<particle[i].pos.comp[1]<<'\t'<<particle[i].pos.comp[2]<<std::endl;
+	//	for ( int i = 0 ; i < NrParticles; i ++ )
+	//		{
+					//	outFile5<<'H'<<'\t'<<particle[i].pos.comp[0]<<'\t'<<particle[i].pos.comp[1]<<'\t'<<particle[i].pos.comp[2]<<std::endl;
+						outFile9 <<particle[0].pos.comp[0]<<'\t'<<particle[0].pos.comp[1]<<'\t'<<particle[0].pos.comp[2]<<std::endl;
+						outFile10<<particle[1].pos.comp[0]<<'\t'<<particle[1].pos.comp[1]<<'\t'<<particle[1].pos.comp[2]<<std::endl;
 
-	}
-      	outFile5<<'\n'<<std::endl;
+//	}
+   //   	outFile5<<'\n'<<std::endl;
 
-		outFile5.close();
+	//	outFile5.close();
 	}
 
 	outFile<<K_Energy<<std::endl;

@@ -4,7 +4,7 @@
 while ( $a < 2 )
 mkdir $a 
 cd $a
-  sed "s/xxx/$a/ ; s/xxxnew/$a/ ; s/xxnstep/step<100000/ ; s/xxcreate/1/ ; s/xxrestart/0/ ; s/xxthermo/1/ " ../../MD_3D_structured.cpp > MD_3D_structured.cpp
+  sed "s/xxx/$a/ ; s/xxxnew/$a/ ; s/xxnstep/step<10000/ ; s/xxcreate/1/ ; s/xxrestart/0/ ; s/xxthermo/0/ " ../../MD_3D_structured.cpp > MD_3D_structured.cpp
   sed "s/xxshift/0/ " ../../pairforce_structured.h > pairforce_structured.h
   sed "s/xxcut/1.1225/ " ../../defs.h > defs.h
   
